@@ -1,0 +1,85 @@
+---
+title: "Function to determine old-growth status in the eastern US"
+author: "Matt Russell"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Function to determine old-growth status in the eastern US
+# See pp. 45-46 in the USDA report:
+# https://www.forestlandowners.com/wp-content/uploads/2023/04/mature-and-old-growth-forests-tech.pdf
+
+identify_og <- function(FORTYPCD, DBH_large, TPA_large, AGE){
+    # Beech-maple-basswood
+  if(FORTYPCD == 805){
+    dia_min = 16; tpa_min = 10; age_min = 141
+    # Northern hardwood
+  } else if (FORTYPCD %in% c(520, 801, 802, 809)){
+    dia_min = 16; tpa_min = 10; age_min = 141
+    # Dry oak
+  } else if (FORTYPCD %in% c(162, 163, 165, 167, 182, 184, 404, 405,
+                             501, 502, 506, 507, 509, 510, 513, 515)){
+    dia_min = 16; tpa_min = 20; age_min = 101
+    # Mesic northern oak
+  } else if (FORTYPCD %in% c(503, 504, 505, 511, 512, 516)){
+    dia_min = 20; tpa_min = 5; age_min = 161
+    # Wetland hardwood
+  } else if (FORTYPCD %in% c(701, 702, 703, 704, 705, 706, 706, 707, 708, 709)){
+    dia_min = 18; tpa_min = 10; age_min = 121
+    # Conifer northern hardwood
+  } else if (FORTYPCD %in% c(104, 105, 401)){
+    dia_min = 16; tpa_min = 10; age_min = 141
+    # Northern pine
+  } else if (FORTYPCD %in% c(101, 102, 103)){
+    dia_min = 12; tpa_min = 20; age_min = 101
+    # Montane spruce
+  } else if (FORTYPCD %in% c(121, 123, 124, 158, 129)){
+    dia_min = 15; tpa_min = 10; age_min = 141
+    # Sub-boreal spruce-fir
+  } else if (FORTYPCD %in% c(122, 125)){
+    dia_min = 12; tpa_min = 10; age_min = 141
+    # Other
+  } else {
+    dia_min = 14; tpa_min = 10; age_min = 101
+  }
+  og = ifelse((DBH_large >= dia_min) & (TPA_large >= tpa_min) & (AGE >= age_min),
+    "Old growth", "Not old growth")
+}
+```
+
+```{r}
+# An example dataset to identify old growth status:
+# FORTYPCD = the FIA forest type code
+# DBH_large = the minimum diameter for the largest trees in the stand
+# TPA_large = the minimum number of number of trees per acre >= DBH_large
+# AGE = the minimum value of stand age (years)
+
+forest <- tribble(
+  ~FORTYPCD, ~DBH_large, ~TPA_large, ~AGE,
+  805, 18, 20, 150,
+  805, 20, 20, 160,
+  701, 19, 25, 140,
+  701, 12, 5, 140
+  )
+
+# Apply the function to estimate olf growth status
+# First three forests are old growth; last is not old growth
+
+forest <- forest |>
+  rowwise() |>
+  mutate(og = identify_og(FORTYPCD = FORTYPCD,
+                          DBH_large = DBH_large,
+                          TPA_large = TPA_large,
+                          AGE = AGE))
+
+print(forest)
+```
+
+
+
+
